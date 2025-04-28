@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="iPhone Kamera" />
+    <link rel="apple-touch-icon" href="./img/icon-192x192.png" />
+    <link rel="apple-touch-startup-image" href="./img/icon-512x512.png" />
+    <link rel="icon" type="image/png" href="./img/icon-192x192.png" />
+    <title>Kamera iPhone Style</title>
+    <style>
+        html,
+        body {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            background: black;
+            overflow: hidden;
+        }
+
+        body {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .frame-top,
+        .frame-bottom {
+            width: 100%;
+            max-width: 750px;
+            display: block;
+        }
+
+        .camera-container {
+            flex: 1;
+            width: 100%;
+            max-width: 750px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        video {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .switch-btn {
+            position: absolute;
+            bottom: 27px;
+            /* sesuaikan posisi vertikal */
+            right: 18px;
+            /* sesuaikan posisi horizontal */
+            z-index: 10;
+            background: none;
+            border: none;
+            padding: 0;
+        }
+
+        .switch-btn img {
+            width: 37px;
+            /* ukuran ikon */
+            height: 27px;
+            opacity: 0.0;
+        }
+
+        #book {
+            display: none;
+            position: absolute;
+            top: 120px;
+            /* Sesuaikan posisi vertikal */
+            left: 90px;
+            /* Sesuaikan posisi horizontal */
+            width: 180px;
+            /* Ukuran lebar sesuai area kartu */
+            height: auto;
+            /* Biarkan tinggi menyesuaikan proporsi */
+            z-index: 3;
+            object-fit: cover;
+            border-radius: 8px;
+            /* Opsional: biar kelihatan natural */
+        }
+    </style>
+</head>
+
+<body>
+    <button class="switch-btn" onclick="switchCamera()">
+        <img src="./img/switch-camera.png" alt="Ganti Kamera" />
+    </button>
+
+    <img class="frame-top" src="./img/frame-top.png" alt="Frame Atas" />
+
+    <div class="camera-container">
+        <video id="camera" autoplay playsinline></video>
+
+        <!-- Video sulap muncul setelah 5 detik -->
+        <video id="book" src="./video/book.mp4" playsinline muted></video>
+    </div>
+
+    <img class="frame-bottom" src="./img/frame-bottom.png" alt="Frame Bawah" />
+
+    <!-- Tombol pengatur waktu tersembunyi -->
+    <button id="set-time-btn" onclick="toggleTimeSetup()"
+        style="position: absolute; top: 7px; left: 8px; opacity: 0.25; z-index: 20; background: transparent; border: none; width: 30px; height: 30px;"></button>
+
+    <!-- Tombol restar kamera -->
+    <!-- <button onclick="startCamera(currentFacingMode)"
+        style="position:absolute; right:90px; top:7px; width:30px; height:30px; opacity:0.25; z-index:20; background: transparent; border:none;"></button> -->
+
+    <!-- Tombol restar kamera ini contoh -->
+    <button onclick="startCamera(currentFacingMode)"
+        style="position:absolute; right:10px; top:430px; width:80px; height:80px; opacity:0.25; z-index:20; background: transparent; border:none;"></button>
+
+    <!-- Form pengaturan waktu -->
+    <div id="time-setup"
+        style="display: none; position: absolute; top: 50px; left: 20px; z-index: 30; background: rgba(0,0,0,0.8); padding: 10px; border-radius: 8px;">
+        <label style="color: white;">Waktu (detik):</label><br>
+        <input id="timeInput" type="number" min="1" value="10" style="width: 60px; font-size: 16px;" />
+        <button onclick="saveTime()" style="font-size: 14px; margin-top: 5px;">Simpan</button>
+    </div>
+
+    <!-- ... semua kode HTML dan CSS tetap sama ... -->
+
+    <script>
+        let currentFacingMode = "environment";
+        let stream = null;
+        let bookVideoTimeout;
+        let delaySeconds = 10;
+
+        // Toggle tampilan pengaturan waktu
+        function toggleTimeSetup() {
+            const setupBox = document.getElementById('time-setup');
+            setupBox.style.display = setupBox.style.display === 'none' ? 'block' : 'none';
+        }
+
+        // Simpan waktu dari input
+        function saveTime() {
+            const inputVal = parseInt(document.getElementById('timeInput').value);
+            if (!isNaN(inputVal) && inputVal > 0) {
+                delaySeconds = inputVal;
+                alert(`Waktu diatur: ${delaySeconds} detik`);
+                document.getElementById('time-setup').style.display = 'none';
+            }
+        }
+
+        // Fungsi utama untuk nyalakan kamera
+        async function startCamera(facingMode) {
+            if (stream) {
+                stream.getTracks().forEach(track => track.stop());
+            }
+
+            try {
+                stream = await navigator.mediaDevices.getUserMedia({
+                    video: {
+                        facingMode: { exact: facingMode },
+                        width: { ideal: 1280 },
+                        height: { ideal: 720 },
+                        advanced: [
+                            { focusMode: "continuous" },  // Autofocus jika didukung
+                            { exposureMode: "continuous" } // Auto exposure (opsional)
+                        ]
+                    }
+                });
+
+
+                const video = document.getElementById('camera');
+                const bookVideo = document.getElementById('book');
+
+                video.srcObject = stream;
+                video.style.transform = (facingMode === "user") ? "scaleX(-1)" : "none";
+                currentFacingMode = facingMode;
+
+                // Reset video sulap
+                bookVideo.style.display = "none";
+                bookVideo.pause?.();
+                bookVideo.currentTime = 0;
+
+                bookVideo.onended = () => {
+                    bookVideo.style.display = "none";
+                    bookVideo.currentTime = 0;
+                };
+
+            } catch (err) {
+                alert("Gagal mengakses kamera: " + err.message);
+            }
+        }
+
+        // Fungsi tombol ganti kamera
+        function switchCamera() {
+            const newFacing = currentFacingMode === "user" ? "environment" : "user";
+            startCamera(newFacing);
+
+            const bookVideo = document.getElementById('book');
+
+            if (bookVideoTimeout) clearTimeout(bookVideoTimeout);
+
+            bookVideoTimeout = setTimeout(() => {
+                bookVideo.style.display = "block";
+                bookVideo.play?.();
+            }, delaySeconds * 1000);
+        }
+
+        // Saat kembali dari background, nyalakan kamera lagi
+        document.addEventListener("visibilitychange", () => {
+            if (document.visibilityState === "visible") {
+                if (stream) {
+                    stream.getTracks().forEach(track => track.stop());
+                    stream = null;
+                }
+
+                // Tambahkan jeda sebentar sebelum start ulang
+                setTimeout(() => {
+                    startCamera(currentFacingMode);
+                }, 300); // jeda 300ms biar lebih stabil di iPhone
+            }
+        });
+
+
+        // Saat halaman pertama kali dibuka
+        if (document.visibilityState === "visible") {
+            startCamera(currentFacingMode);
+        }
+    </script>
+
+
+</body>
+
+</html>
