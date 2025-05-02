@@ -166,15 +166,14 @@
                 stream = await navigator.mediaDevices.getUserMedia({
                     video: {
                         facingMode: { exact: facingMode },
-                        width: { ideal: 360 },
-                        height: { ideal: 640 },
+                        width: { ideal: 1280 },
+                        height: { ideal: 720 },
                         advanced: [
-                            { focusMode: "continuous" },
-                            { exposureMode: "continuous" }
+                            { focusMode: "continuous" },  // Autofocus jika didukung
+                            { exposureMode: "continuous" } // Auto exposure (opsional)
                         ]
                     }
                 });
-
 
 
                 const video = document.getElementById('camera');
